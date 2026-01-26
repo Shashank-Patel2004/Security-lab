@@ -1,24 +1,52 @@
-import logo from './logo.svg';
-import './App.css';
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
+import { auth, db } from './firebase';
+import Auth from './components/Auth';
+import Dashboard from './components/Dashboard';
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(false);
+      if (currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            setUser({ ...currentUser, ...userDoc.data() });
+          } else {
+            setUser({ ...currentUser, role: 'user' });
+          }
+        } catch (error) {
+          console.error('User fetch error:', error);
+          setUser({ ...currentUser, role: 'user' });
+        }
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  if (loading) return <div style={{ textAlign: 'center', marginTop: 50 }}>Loading...</div>;
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+        <header style={{ marginBottom: 30 }}>
+          <h1>🔒 Security Lab</h1>
+          {user && <p>Hi, {user.email} ({user.role}) | <button onClick={() => auth.signOut()}>Logout</button></p>}
+        </header>
+        
+        <Routes>
+          <Route path="/" element={!user ? <Auth setUser={setUser} /> : <Navigate to="/dashboard" />} />
+          <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
