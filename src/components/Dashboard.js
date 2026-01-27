@@ -1,8 +1,31 @@
 // src/components/Dashboard.js
-import React from 'react';
-import { auth } from '../firebase';
+import React, { useEffect, useState } from 'react';
+import { auth, db } from '../firebase';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 const Dashboard = ({ user }) => {
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    if (user.role !== 'admin') return;
+
+    const q = query(
+      collection(db, 'logs'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const items = [];
+      snapshot.forEach((doc) => {
+        items.push({ id: doc.id, ...doc.data() });
+      });
+      setLogs(items);
+    });
+
+    return () => unsub();
+  }, [user.role]);
+
   return (
     <div>
       <div style={{ 
@@ -15,8 +38,13 @@ const Dashboard = ({ user }) => {
         alignItems: 'center'
       }}>
         <div>
-          <h2>Dashboard</h2>
-          <p><strong>{user.email}</strong> ({user.role}) | Labs: {user.labsCompleted?.length || 0} | Points: {user.points || 0}</p>
+          <h2>🔒 Security Lab Dashboard</h2>
+          <p>
+            <strong>{user.email}</strong> | Role: <span style={{ 
+              color: user.role === 'admin' ? 'green' : 'orange' 
+            }}>{user.role}</span> | 
+            Labs: {user.labsCompleted?.length || 0} | Points: {user.points || 0}
+          </p>
         </div>
         <button 
           onClick={async () => {
@@ -27,9 +55,10 @@ const Dashboard = ({ user }) => {
             background: '#ff4444', 
             color: 'white',
             border: 'none', 
-            padding: '8px 16px',
-            borderRadius: 4,
-            cursor: 'pointer'
+            padding: '10px 20px',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontWeight: 'bold'
           }}
         >
           Logout
@@ -43,9 +72,9 @@ const Dashboard = ({ user }) => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
           gap: 20 
         }}>
-          <LabCard title="Lab 1: XSS" status="locked" desc="Stored Cross-Site Scripting" />
+          <LabCard title="Lab 1: XSS" status="locked" desc="Stored Cross-Site Scripting in comments" />
           <LabCard title="Lab 2: IDOR" status="locked" desc="Insecure Direct Object Reference" />
-          <LabCard title="Lab 3: Weak Auth" status="locked" desc="Brute Force & Session Issues" />
+          <LabCard title="Lab 3: Weak Auth" status="locked" desc="Brute Force & Session Weaknesses" />
         </div>
       </div>
       
@@ -55,11 +84,52 @@ const Dashboard = ({ user }) => {
           padding: 20, 
           background: '#e3f2fd', 
           borderRadius: 8,
-          borderLeft: '4px solid #2196f3'
+          borderLeft: '5px solid #2196f3'
         }}>
-          <h3>🔍 Admin: Security Logs</h3>
-          <p>📊 <strong>Check Firestore now:</strong> `logs` collection has your login events!</p>
-          <p>Tomorrow: Real-time dashboard + alerts.</p>
+          <h3>🔍 Security Operations Center (SOC)</h3>
+          <p style={{ fontSize: 14, color: '#555', marginBottom: 15 }}>
+            Real-time monitoring of login/signup events. Only admins see this.
+          </p>
+
+          {logs.length === 0 ? (
+            <div style={{ padding: 20, background: '#fff3e0', borderRadius: 4 }}>
+              <p>📝 No logs yet. Try logging out/in to generate events!</p>
+            </div>
+          ) : (
+            <div style={{ maxHeight: 300, overflow: 'auto' }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse', 
+                fontSize: 13,
+                background: 'white',
+                borderRadius: 6,
+                overflow: 'hidden',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+              }}>
+                <thead>
+                  <tr style={{ background: '#bbdefb' }}>
+                    <th style={tableStyle}>Time</th>
+                    <th style={tableStyle}>Event</th>
+                    <th style={tableStyle}>Email</th>
+                    <th style={tableStyle}>User ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.slice(0, 10).map((log) => (  // Show top 10
+                    <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <td style={tableStyle}>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td style={tableStyle}><span style={{ 
+                        color: log.event.includes('success') ? '#4caf50' : '#ff9800',
+                        fontWeight: 'bold'
+                      }}>{log.event}</span></td>
+                      <td style={tableStyle}>{log.email}</td>
+                      <td style={tableStyle}>{log.userId.slice(0, 8)}...</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -68,30 +138,41 @@ const Dashboard = ({ user }) => {
 
 const LabCard = ({ title, status, desc }) => (
   <div style={{
-    border: status === 'locked' ? '2px solid #ff9800' : '2px solid #4caf50',
-    borderRadius: 8,
-    padding: 20,
+    border: status === 'locked' ? '3px solid #ff9800' : '3px solid #4caf50',
+    borderRadius: 12,
+    padding: 25,
     textAlign: 'center',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    transition: 'all 0.3s'
   }}>
-    <h4>{title}</h4>
-    <p style={{ color: '#666', fontSize: 14 }}>{desc}</p>
+    <h4 style={{ marginBottom: 10 }}>{title}</h4>
+    <p style={{ color: '#666', fontSize: 14, marginBottom: 15 }}>{desc}</p>
     <p><strong>Status:</strong> <span style={{ 
       color: status === 'locked' ? '#f44336' : '#4caf50',
-      fontWeight: 'bold'
-    }}>{status}</span></p>
+      fontWeight: 'bold',
+      fontSize: 16
+    }}>{status.toUpperCase()}</span></p>
     <button disabled style={{ 
-      padding: '10px 20px', 
-      opacity: status === 'locked' ? 0.5 : 1,
-      background: status === 'locked' ? '#ccc' : '#4caf50',
+      padding: '12px 24px', 
+      opacity: status === 'locked' ? 0.6 : 1,
+      background: status === 'locked' ? '#ff9800' : '#4caf50',
       color: 'white',
       border: 'none',
-      borderRadius: 4,
-      cursor: status === 'locked' ? 'not-allowed' : 'pointer'
+      borderRadius: 6,
+      cursor: status === 'locked' ? 'not-allowed' : 'pointer',
+      fontSize: 14,
+      fontWeight: 'bold'
     }}>
-      {status === 'locked' ? 'Unlock Tomorrow' : 'Start Lab'}
+      {status === 'locked' ? '🔒 Coming Tomorrow' : '🚀 Start Lab'}
     </button>
   </div>
 );
+
+const tableStyle = { 
+  border: '1px solid #90caf9', 
+  padding: '12px 8px', 
+  textAlign: 'left',
+  fontSize: 13
+};
 
 export default Dashboard;
