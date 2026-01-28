@@ -6,6 +6,10 @@ import { getDoc, doc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
+import Lab1XSS from './components/Lab1XSS';  
+import Lab2IDOR from './components/Lab2IDOR';
+
+
 
 function App() {
   const [user, setUser] = useState(null);
@@ -44,6 +48,8 @@ function App() {
         <Routes>
           <Route path="/" element={!user ? <Auth setUser={setUser} /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" />} />
+          <Route path="/lab1" element={user ? <Lab1XSS user={user} /> : <Navigate to="/" />} />
+          <Route path="/lab2" element={user ? <Lab2IDOR user={user} /> : <Navigate to="/" />} />
         </Routes>
       </div>
     </Router>

@@ -1,9 +1,11 @@
 // src/components/Dashboard.js
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 const Dashboard = ({ user }) => {
+  const navigate = useNavigate();  
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
@@ -72,8 +74,18 @@ const Dashboard = ({ user }) => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
           gap: 20 
         }}>
-          <LabCard title="Lab 1: XSS" status="locked" desc="Stored Cross-Site Scripting in comments" />
-          <LabCard title="Lab 2: IDOR" status="locked" desc="Insecure Direct Object Reference" />
+          <LabCard 
+            title="Lab 1: XSS" 
+            status="ready"  // Changed from locked
+            desc="Stored Cross-Site Scripting in comments"
+            onClick={() => navigate('/lab1')}  // ACTIVE BUTTON
+          />
+          <LabCard
+            title="Lab 2: IDOR"
+            status="ready"
+            desc="Insecure Direct Object Reference"
+            onClick={() => navigate('/lab2')}
+          />
           <LabCard title="Lab 3: Weak Auth" status="locked" desc="Brute Force & Session Weaknesses" />
         </div>
       </div>
@@ -115,7 +127,7 @@ const Dashboard = ({ user }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.slice(0, 10).map((log) => (  // Show top 10
+                  {logs.slice(0, 10).map((log) => (
                     <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={tableStyle}>{new Date(log.timestamp).toLocaleString()}</td>
                       <td style={tableStyle}><span style={{ 
@@ -136,15 +148,18 @@ const Dashboard = ({ user }) => {
   );
 };
 
-const LabCard = ({ title, status, desc }) => (
+const LabCard = ({ title, status, desc, onClick }) => (
   <div style={{
     border: status === 'locked' ? '3px solid #ff9800' : '3px solid #4caf50',
     borderRadius: 12,
     padding: 25,
     textAlign: 'center',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-    transition: 'all 0.3s'
-  }}>
+    transition: 'all 0.3s',
+    cursor: onClick ? 'pointer' : 'default'
+  }}
+  onClick={onClick}  // Click entire card!
+  >
     <h4 style={{ marginBottom: 10 }}>{title}</h4>
     <p style={{ color: '#666', fontSize: 14, marginBottom: 15 }}>{desc}</p>
     <p><strong>Status:</strong> <span style={{ 
@@ -152,18 +167,18 @@ const LabCard = ({ title, status, desc }) => (
       fontWeight: 'bold',
       fontSize: 16
     }}>{status.toUpperCase()}</span></p>
-    <button disabled style={{ 
+    <button style={{ 
       padding: '12px 24px', 
-      opacity: status === 'locked' ? 0.6 : 1,
       background: status === 'locked' ? '#ff9800' : '#4caf50',
       color: 'white',
       border: 'none',
       borderRadius: 6,
-      cursor: status === 'locked' ? 'not-allowed' : 'pointer',
+      cursor: 'pointer',
       fontSize: 14,
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      opacity: status === 'locked' ? 0.7 : 1
     }}>
-      {status === 'locked' ? '🔒 Coming Tomorrow' : '🚀 Start Lab'}
+      {status === 'locked' ? '🔒 Coming Soon' : '🚀 Start Lab'}
     </button>
   </div>
 );
