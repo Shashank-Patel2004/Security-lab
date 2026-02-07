@@ -8,8 +8,7 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Lab1XSS from './components/Lab1XSS';  
 import Lab2IDOR from './components/Lab2IDOR';
-
-
+import Lab3AUTH from "./components/Lab3AUTH";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -40,16 +39,12 @@ function App() {
   return (
     <Router>
       <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
-        <header style={{ marginBottom: 30 }}>
-          <h1>🔒 Security Lab</h1>
-          {user && <p>Hi, {user.email} ({user.role}) | <button onClick={() => auth.signOut()}>Logout</button></p>}
-        </header>
-        
         <Routes>
           <Route path="/" element={!user ? <Auth setUser={setUser} /> : <Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/" />} />
           <Route path="/lab1" element={user ? <Lab1XSS user={user} /> : <Navigate to="/" />} />
           <Route path="/lab2" element={user ? <Lab2IDOR user={user} /> : <Navigate to="/" />} />
+          <Route path="/lab3" element={user ? <Lab3AUTH user={user} />: <Navigate to="/" />} />
         </Routes>
       </div>
     </Router>
